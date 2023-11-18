@@ -16,6 +16,8 @@ enum {
         CMD_CMP,
         /* jump if not equal */
         CMD_JMP_NE,
+        /* make a system call */
+        CMD_INT,
         NR_CMDS,
 };
 
@@ -26,6 +28,7 @@ static const char *cmdnames[NR_CMDS] = {
         "CMD_MOV",
         "CMD_CMP",
         "CMD_JMP_NE",
+        "CMD_INT",
 };
 
 /* get command of instruction */
@@ -104,6 +107,21 @@ static const char *txnames[NR_TX_TYPES] = {
         "TX_MEM_2_MEM",
 };
 
+/* our system calls */
+enum {
+        /**
+         * usage
+         * -----
+         * mov reg_0, SYS_WRITE
+         * mov reg_1, 10
+         *
+         * will print 10
+         *
+         * CMD_INT
+         */
+        SYS_WRITE,
+};
+
 /* masks for parsing commands */
 enum {
         CMD_MASK        = 0xf,
@@ -123,7 +141,7 @@ static char memory[MAIN_MEM_SIZE] = {
         /* registers[REG_0] = 0 */
         CMD_MOV | (TX_MEM_2_REG << 4),
         REG_0,
-        19, 0x0, 0x0, 0x0,
+        0xf, 0xf, 0x0, 0x0,
 
         /* registers[REG_0]++ */
         CMD_INC,
@@ -134,13 +152,17 @@ static char memory[MAIN_MEM_SIZE] = {
         REG_0,
         10, 0x0, 0x0, 0x0,
 
-        /* jump to MOV command */
+        /* jump to INC command if comparison is false */
         CMD_JMP_NE,
         0x6, 0x00, 0x00, 0x00,
 
+        CMD_INT,
+        SYS_WRITE,
+        REG_0,
+
         CMD_HALT,
 
-        [19] = 0,
+        [0xff] = 0,
 };
 
 /* registers */
@@ -161,9 +183,11 @@ main(void)
 
         registers[REG_0] = 0;
         while (memory[pc] != CMD_HALT) {
+                unsigned int syscall;
                 unsigned int ins;
                 unsigned int dest;
                 unsigned int value;
+                unsigned int reg;
 
                 ins = memory[pc];
 
@@ -245,12 +269,21 @@ main(void)
                                 dest |= (memory[++pc] << 24);
                                 pc = dest;
                         } else {
+                                /* skip CMD_JMP_NE command and its address */
                                 pc += 5;
+                                cmp = 0;
                         }
+                        break;
+                case CMD_INT:
+                        syscall = memory[++pc];
+                        reg = memory[++pc];
+
+                        if (syscall == SYS_WRITE)
+                                printf("%d\n", registers[reg]);
+                        ++pc;
                         break;
                 }
         }
-        printf("%d\n", registers[REG_0]);
 }
 
 static void
