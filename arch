@@ -1,0 +1,47 @@
+commands (3 bits)
+=================
+halt:   halt virtual machine
+add:    add two registers together
+mult:   multiply two registers
+div:    divide two registers
+mov:    see 'transfer type'
+
+registers (3 bits) all are general purpose
+==========================================
+r0
+r1
+r2
+r3
+r4
+r5
+r6
+
+transfer type (2 bits)
+======================
+register to register
+register to memory
+memory to register
+memory to memory
+
+instruction format
+==================
+
+first 3 bits are the command
+[ 0 ][ 0 ][ 0 ]
+
+next 3 bits are the transfer type
+[ 0 ][ 0 ][ 0 ] [ 0 ][ 0 ]
+
+next 3 bits can signify multiple things:
+
+        if the transfer type is register to register:
+                the next 3 bits are the destination register
+                the next 3 bits of the next word are the source register
+        if the transfer type is register to memory:
+                the next 3 bits are the source register
+                the next 4 words are the complete memory address to put register value at
+        if the transfer type is memory to register:
+                the next 3 bits are the destination register:
+                the next 4 words the the complete memory address to load register with
+        if the transfer type is memory to memory:
+                the next 4 words the the complete memory address to load
